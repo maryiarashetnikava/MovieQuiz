@@ -11,30 +11,19 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var yesButton: UIButton!
     @IBOutlet private weak var noButton: UIButton!
     
-    // MARK: - Properties
-    private var currentQuestionIndex = 0
-    private var correctAnswers = 0
-    
-    private let questions: [QuizQuestion] = [
-        QuizQuestion(image: "The Godfather",
-                     text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
-        QuizQuestion(image: "The Dark Knight",
-                     text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
-        QuizQuestion(image: "Kill Bill", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
-        QuizQuestion(image: "The Avengers", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
-        QuizQuestion(image: "Deadpool", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
-        QuizQuestion(image: "The Green Knight", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
-        QuizQuestion(image: "Old", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
-        QuizQuestion(image: "The Ice Age Adventures of Buck Wild", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
-        QuizQuestion(image: "Tesla", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
-        QuizQuestion(image: "Vivarium", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
-    ]
+    // MARK: - Dependencies
+    private let alertPresenter = AlertPresenter()
+    private var presenter: GamePresenter!
+
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        showFirstQuestion()
+        
+        let factory = QuestionFactory()
+        presenter = GamePresenter(view: self, questionFactory: factory)
+        
     }
     
     // MARK: - UI Setup
@@ -43,44 +32,19 @@ final class MovieQuizViewController: UIViewController {
         imageView.layer.masksToBounds = true
     }
     
-    // MARK: - Quiz Flow
-    private func showFirstQuestion() {
-        let firstQuestion = questions[currentQuestionIndex]
-        let viewModel = convert(model: firstQuestion)
-        show(quiz: viewModel)
-    }
-    
-    private func showNextQuestionOrResults() {
-        if currentQuestionIndex == questions.count - 1 {
-            showResults()
-        } else {
-            currentQuestionIndex += 1
-            
-            let nextQuestion = questions[currentQuestionIndex]
-            let viewModel = convert(model: nextQuestion)
-            show(quiz: viewModel)
-                
-            }
-        }
-    
     // MARK: - Actions
     @IBAction private func yesButtonClicked(_ sender: Any) {
-          handleAnswer(true)
-      }
-
-      @IBAction private func noButtonClicked(_ sender: Any) {
-          handleAnswer(false)
-      }
-
-      private func handleAnswer(_ givenAnswer: Bool) {
-          let currentQuestion = questions[currentQuestionIndex]
-          let isCorrect = givenAnswer == currentQuestion.correctAnswer
-          showAnswerResult(isCorrect: isCorrect)
-      }
+        presenter.handleAnswer(true)
+    }
     
-    // MARK: - Display Logic
-    private func show(quiz step: QuizStepViewModel) {
-        
+    @IBAction private func noButtonClicked(_ sender: Any) {
+        presenter.handleAnswer(false)
+    }
+}
+
+// MARK: - MovieQuizViewControllerProtocol
+extension MovieQuizViewController: MovieQuizViewControllerProtocol {
+    func show(quiz step: QuizStepViewModel) {
         imageView.layer.borderWidth = 0
         imageView.layer.borderColor = UIColor.clear.cgColor
         
@@ -91,70 +55,28 @@ final class MovieQuizViewController: UIViewController {
         yesButton.isEnabled = true
         noButton.isEnabled = true
     }
-    private func showAnswerResult(isCorrect: Bool) {
-        yesButton.isEnabled = false
-        noButton.isEnabled = false
-        
-        if isCorrect {
-            correctAnswers += 1
+    func highlightImage(isCorrect: Bool) {
+            yesButton.isEnabled = false
+            noButton.isEnabled = false
+
+            imageView.layer.borderWidth = 8
+            imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
         }
-        imageView.layer.masksToBounds = true
-        imageView.layer.borderWidth = 8
-        imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        imageView.layer.cornerRadius = 20
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.showNextQuestionOrResults()
-        }
-    }
-    
-    private func showResults() {
-            let text = "Ваш результат: \(correctAnswers)/\(questions.count)"
-            let viewModel = QuizResultsViewModel(
-                title: "Этот раунд окончен!",
-                text: text,
-                buttonText: "Сыграть ещё раз"
-            )
-            show(quiz: viewModel)
-        }
-    
-    private func show(quiz result: QuizResultsViewModel) {
-        let alert = UIAlertController(
+    func show(quiz result: QuizResultsViewModel) {
+        let model = AlertModel(
             title: result.title,
             message: result.text,
-            preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: result.buttonText, style: .default) { _ in
-            self.resetQuiz()
-        }
-        
-        alert.addAction(action)
-        
-        self.present(alert, animated: true, completion: nil)
+            buttonText: result.buttonText,
+            completion: { [weak self] in
+                self?.presenter.restartGame()
+            }
+        )
+
+        alertPresenter.show(in: self, model: model)
     }
     
-    
-    // MARK: - Helpers
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        let questionStep = QuizStepViewModel(
-            image: UIImage(named: model.image) ?? UIImage(),
-            question: model.text,
-            questionNumber: "\(currentQuestionIndex + 1)/\(questions.count)")
-        return questionStep
-    }
-    
-    private func resetQuiz() {
-           currentQuestionIndex = 0
-           correctAnswers = 0
-           showFirstQuestion()
-       }
-
-        
-
-    
-  
-
-
 }
+
+
     
     
