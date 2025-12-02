@@ -10,9 +10,9 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var counterLabel: UILabel!
     @IBOutlet private weak var yesButton: UIButton!
     @IBOutlet private weak var noButton: UIButton!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Dependencies
-    private let alertPresenter = AlertPresenter()
     private var presenter: GamePresenter!
 
     
@@ -21,7 +21,8 @@ final class MovieQuizViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         
-        let factory = QuestionFactory()
+        let moviesLoader = MoviesLoader()
+        let factory = QuestionFactory(moviesLoader: moviesLoader, delegate: nil)
         presenter = GamePresenter(view: self, questionFactory: factory)
         
     }
@@ -56,12 +57,12 @@ extension MovieQuizViewController: MovieQuizViewControllerProtocol {
         noButton.isEnabled = true
     }
     func highlightImage(isCorrect: Bool) {
-            yesButton.isEnabled = false
-            noButton.isEnabled = false
-
-            imageView.layer.borderWidth = 8
-            imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
-        }
+        yesButton.isEnabled = false
+        noButton.isEnabled = false
+        
+        imageView.layer.borderWidth = 8
+        imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
+    }
     func show(quiz result: QuizResultsViewModel) {
         let model = AlertModel(
             title: result.title,
@@ -71,11 +72,38 @@ extension MovieQuizViewController: MovieQuizViewControllerProtocol {
                 self?.presenter.restartGame()
             }
         )
-
-        alertPresenter.show(in: self, model: model)
+        
+        AlertPresenter.show(in: self, model: model)
+    }
+    
+    func showLoadingIndicator() {
+        activityIndicator.isHidden = false
+        activityIndicator.startAnimating()
+    }
+    
+    func hideLoadingIndicator() {
+        activityIndicator.isHidden = true
+        activityIndicator.stopAnimating()
+    }
+    
+    func showNetworkError(message: String) {
+        hideLoadingIndicator()
+        
+        
+        let model = AlertModel(
+            title: presenter.networkErrorTitle,
+            message: message,
+            buttonText: presenter.retryButtonText
+        ) { [weak self] in
+            
+            self?.presenter.restartLoading()
+        }
+        AlertPresenter.show(in: self, model: model)
     }
     
 }
+    
+
 
 
     
