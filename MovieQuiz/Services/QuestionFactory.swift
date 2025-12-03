@@ -17,6 +17,24 @@ class QuestionFactory: QuestionFactoryProtocol  {
                 guard let self = self else { return }
                 switch result {
                 case .success(let mostPopularMovies):
+                    if let errorText = mostPopularMovies.errorMessage, !errorText.isEmpty {
+                        let error = NSError(domain: "MoviesAPI",
+                                            code: 0,
+                                            userInfo: [NSLocalizedDescriptionKey: errorText]
+                        )
+                        self.delegate?.didFailToLoadData(with: error)
+                        return
+                    }
+                    guard !mostPopularMovies.items.isEmpty else {
+                        let error = NSError(
+                            domain: "MoviesAPI",
+                            code: 0,
+                            userInfo: [NSLocalizedDescriptionKey: "Список фильмов пуст"]
+                        )
+                        self.delegate?.didFailToLoadData(with: error)
+                        return
+                    }
+                    
                     self.movies = mostPopularMovies.items
                     self.delegate?.didLoadDataFromServer()
                 case .failure(let error):
@@ -28,38 +46,36 @@ class QuestionFactory: QuestionFactoryProtocol  {
     
     func requestNextQuestion() {
         guard !movies.isEmpty else {
-                loadData()
-                return
-            }
+            loadData()
+            return
+        }
         
         DispatchQueue.global().async { [weak self] in
             guard let self = self else { return }
             let index = (0..<self.movies.count).randomElement() ?? 0
-                
+            
             guard let movie = self.movies[safe: index] else { return }
-                
-            var imageData = Data()
-               
-        do {
-                imageData = try Data(contentsOf: movie.resizedImageURL)
-        } catch {
-                print("Failed to load image")
+            
+            guard let imageData = try? Data(contentsOf: movie.resizedImageURL),
+                  !imageData.isEmpty else {
+                    self.requestNextQuestion()
+                return
             }
-                
-        let rating = Float(movie.rating) ?? 0
-                
-        let text = "Рейтинг этого фильма больше чем 7?"
-        let correctAnswer = rating > 7
-                
-        let question = QuizQuestion(image: imageData,
-                                    text: text,
-                                    correctAnswer: correctAnswer)
-                
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.delegate?.didReceiveNextQuestion(question: question)
-                }
+            
+            let rating = Float(movie.rating) ?? 0
+            
+            let text = "Рейтинг этого фильма больше чем 7?"
+            let correctAnswer = rating > 7
+            
+            let question = QuizQuestion(image: imageData,
+                                        text: text,
+                                        correctAnswer: correctAnswer)
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.delegate?.didReceiveNextQuestion(question: question)
             }
+        }
     }
 }
 

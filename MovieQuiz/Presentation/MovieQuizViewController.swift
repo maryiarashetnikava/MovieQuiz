@@ -14,16 +14,21 @@ final class MovieQuizViewController: UIViewController {
     
     // MARK: - Dependencies
     private var presenter: GamePresenter!
-
+    
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         
+        activityIndicator.hidesWhenStopped = true
+        showLoadingIndicator()
+        
         let moviesLoader = MoviesLoader()
         let factory = QuestionFactory(moviesLoader: moviesLoader, delegate: nil)
         presenter = GamePresenter(view: self, questionFactory: factory)
+        
+        factory.delegate = presenter
         
     }
     
@@ -77,12 +82,10 @@ extension MovieQuizViewController: MovieQuizViewControllerProtocol {
     }
     
     func showLoadingIndicator() {
-        activityIndicator.isHidden = false
         activityIndicator.startAnimating()
     }
     
     func hideLoadingIndicator() {
-        activityIndicator.isHidden = true
         activityIndicator.stopAnimating()
     }
     
@@ -102,7 +105,7 @@ extension MovieQuizViewController: MovieQuizViewControllerProtocol {
     }
     
 }
-    
+
 
 
 

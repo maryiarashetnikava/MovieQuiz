@@ -5,8 +5,8 @@ import UIKit
 final class GamePresenter {
     
     // MARK: - UI texts (вынесены сюда)
-        let networkErrorTitle: String = "Ошибка"
-        let retryButtonText: String = "Попробовать ещё раз"
+    let networkErrorTitle: String = "Ошибка"
+    let retryButtonText: String = "Попробовать ещё раз"
     
     // MARK: - Game State
     private var currentQuestionIndex = 0
@@ -14,8 +14,8 @@ final class GamePresenter {
     private var correctAnswers = 0
     private var currentQuestion: QuizQuestion?
     private let statisticService: StatisticServiceProtocol = StatisticService()
-
-
+    
+    
     // MARK: - Dependencies
     private weak var view: MovieQuizViewControllerProtocol?
     private var questionFactory: QuestionFactoryProtocol
@@ -47,18 +47,18 @@ final class GamePresenter {
         
         newFactory.delegate = self
         self.questionFactory = newFactory
-
+        
         requestNextQuestion()
     }
     
     func restartLoading() {
-            requestNextQuestion()
-        }
-
-        private func handleNetworkError(_ error: Error) {
-            let message = "Не удалось загрузить данные.\n\(error.localizedDescription)"
-            view?.showNetworkError(message: message)
-        }
+        requestNextQuestion()
+    }
+    
+    private func handleNetworkError(_ error: Error) {
+        let message = "Не удалось загрузить данные.\n\(error.localizedDescription)"
+        view?.showNetworkError(message: message)
+    }
     
     // MARK: - Private Game Logic
     private func requestNextQuestion() {
@@ -68,7 +68,7 @@ final class GamePresenter {
     private func showNextQuestionOrResults() {
         if currentQuestionIndex == questionsAmount - 1 {
             showResults()
-           
+            
         } else {
             currentQuestionIndex += 1
             requestNextQuestion()
@@ -79,9 +79,9 @@ final class GamePresenter {
         if isCorrect {
             correctAnswers += 1
         }
-
+        
         view?.highlightImage(isCorrect: isCorrect)
-
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.showNextQuestionOrResults()
         }
@@ -108,7 +108,7 @@ final class GamePresenter {
         
         view?.show(quiz: viewModel)
     }
-
+    
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(
