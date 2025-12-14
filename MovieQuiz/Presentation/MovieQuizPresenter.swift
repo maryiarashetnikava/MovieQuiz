@@ -1,8 +1,8 @@
 
 import UIKit
 
-// MARK: - GamePresenter
-final class GamePresenter {
+// MARK: - Presenter
+final class MovieQuizPresenter {
     
     // MARK: - UI texts (вынесены сюда)
     let networkErrorTitle: String = "Ошибка"
@@ -15,31 +15,44 @@ final class GamePresenter {
     private var currentQuestion: QuizQuestion?
     private let statisticService: StatisticServiceProtocol = StatisticService()
     
+    private func isLastQuestion() -> Bool {
+        currentQuestionIndex == questionsAmount - 1
+    }
+    
+    private func resetQuestionIndex() {
+        currentQuestionIndex = 0
+    }
+    
+    private func switchToNextQuestion() {
+        currentQuestionIndex += 1
+    }
+    
     
     // MARK: - Dependencies
     private weak var view: MovieQuizViewControllerProtocol?
     private var questionFactory: QuestionFactoryProtocol
     
     // MARK: - Init
-    init(view: MovieQuizViewControllerProtocol,
-         questionFactory: QuestionFactoryProtocol) {
+    init(view: MovieQuizViewControllerProtocol) {
         self.view = view
-        self.questionFactory = questionFactory
         
+        let moviesLoader = MoviesLoader()
+        let factory = QuestionFactory(moviesLoader: moviesLoader, delegate: nil)
+        self.questionFactory = factory
         
         self.questionFactory.delegate = self
         requestNextQuestion()
     }
     
     // MARK: - Public Methods
-    func handleAnswer(_ givenAnswer: Bool) {
-        guard let currentQuestion = currentQuestion else { return }
-        let isCorrect = givenAnswer == currentQuestion.correctAnswer
+    func didAnswer(isYes: Bool) {
+        let isCorrect = checkAnswer(isYes)
         showAnswerResult(isCorrect: isCorrect)
     }
+
     
     func restartGame() {
-        currentQuestionIndex = 0
+        resetQuestionIndex()
         correctAnswers = 0
         
         let moviesLoader = MoviesLoader()
@@ -60,20 +73,20 @@ final class GamePresenter {
         view?.showNetworkError(message: message)
     }
     
-    // MARK: - Private Game Logic
+    // MARK: - Game Logic
     private func requestNextQuestion() {
         questionFactory.requestNextQuestion()
     }
     
     private func showNextQuestionOrResults() {
-        if currentQuestionIndex == questionsAmount - 1 {
+        if isLastQuestion() {
             showResults()
-            
         } else {
-            currentQuestionIndex += 1
+            switchToNextQuestion()
             requestNextQuestion()
         }
     }
+    
     
     private func showAnswerResult(isCorrect: Bool) {
         if isCorrect {
@@ -93,13 +106,8 @@ final class GamePresenter {
         let bestGame = statisticService.bestGame
         let accuracy = String(format: "%.2f", statisticService.totalAccuracy)
         
-        let text = """
-        Ваш результат: \(correctAnswers)/\(questionsAmount)
-        Количество сыгранных игр: \(statisticService.gamesCount)
-        Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))
-        Средняя точность: \(accuracy)%
-        """
-        
+        let text = makeResultsMessage()
+
         let viewModel = QuizResultsViewModel(
             title: "Этот раунд окончен!",
             text: text,
@@ -109,8 +117,25 @@ final class GamePresenter {
         view?.show(quiz: viewModel)
     }
     
+    private func makeResultsMessage() -> String {
+        let bestGame = statisticService.bestGame
+        let accuracy = String(format: "%.2f", statisticService.totalAccuracy)
+
+        return """
+        Ваш результат: \(correctAnswers)/\(questionsAmount)
+        Количество сыгранных игр: \(statisticService.gamesCount)
+        Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))
+        Средняя точность: \(accuracy)%
+        """
+    }
     
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
+    private func checkAnswer(_ isYes: Bool) -> Bool {
+        guard let currentQuestion = currentQuestion else { return false }
+        return isYes == currentQuestion.correctAnswer
+    }
+    
+    
+    func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(
             image: UIImage(data: model.image) ?? UIImage(),
             question: model.text,
@@ -120,7 +145,7 @@ final class GamePresenter {
 }
 
 // MARK: - QuestionFactoryDelegate
-extension GamePresenter: QuestionFactoryDelegate {
+extension MovieQuizPresenter: QuestionFactoryDelegate {
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question = question else { return }
         
