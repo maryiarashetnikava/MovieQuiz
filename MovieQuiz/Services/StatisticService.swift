@@ -3,8 +3,8 @@ import UIKit
 // MARK: - StatisticService
 
 final class StatisticService {
-
-// MARK: - Properties
+    
+    // MARK: - Properties
     private let storage: UserDefaults = .standard
     
     private enum Keys: String {
@@ -20,7 +20,7 @@ final class StatisticService {
 // MARK: - StatisticServiceProtocol
 extension StatisticService: StatisticServiceProtocol {
     
-// MARK: - Public Properties
+    // MARK: - Public Properties
     var gamesCount: Int {
         get {
             storage.integer(forKey: Keys.gamesCount.rawValue)
@@ -48,7 +48,7 @@ extension StatisticService: StatisticServiceProtocol {
         guard totalQuestionsAsked > 0 else { return 0 }
         return (Double(totalCorrectAnswers) / Double(totalQuestionsAsked)) * 100
     }
-// MARK: - Public Methods
+    // MARK: - Public Methods
     
     func store(correct count: Int, total amount: Int) {
         totalCorrectAnswers += count
@@ -62,7 +62,7 @@ extension StatisticService: StatisticServiceProtocol {
         }
     }
     
-// MARK: - Private Helpers
+    // MARK: - Private Helpers
     private var totalCorrectAnswers: Int {
         get {
             storage.integer(forKey: Keys.totalCorrectAnswers.rawValue)
@@ -80,5 +80,5 @@ extension StatisticService: StatisticServiceProtocol {
             storage.set(newValue, forKey: Keys.totalQuestionsAsked.rawValue)
         }
     }
-
+    
 }

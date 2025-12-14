@@ -4,14 +4,18 @@ import UIKit
 // MARK: - GamePresenter
 final class GamePresenter {
     
+    // MARK: - UI texts (вынесены сюда)
+    let networkErrorTitle: String = "Ошибка"
+    let retryButtonText: String = "Попробовать ещё раз"
+    
     // MARK: - Game State
     private var currentQuestionIndex = 0
     private let questionsAmount: Int = 10
     private var correctAnswers = 0
     private var currentQuestion: QuizQuestion?
     private let statisticService: StatisticServiceProtocol = StatisticService()
-
-
+    
+    
     // MARK: - Dependencies
     private weak var view: MovieQuizViewControllerProtocol?
     private var questionFactory: QuestionFactoryProtocol
@@ -38,11 +42,22 @@ final class GamePresenter {
         currentQuestionIndex = 0
         correctAnswers = 0
         
-        let newFactory = QuestionFactory()
-            newFactory.delegate = self
-            self.questionFactory = newFactory
-
+        let moviesLoader = MoviesLoader()
+        let newFactory = QuestionFactory(moviesLoader: moviesLoader, delegate: nil)
+        
+        newFactory.delegate = self
+        self.questionFactory = newFactory
+        
         requestNextQuestion()
+    }
+    
+    func restartLoading() {
+        requestNextQuestion()
+    }
+    
+    private func handleNetworkError(_ error: Error) {
+        let message = "Не удалось загрузить данные.\n\(error.localizedDescription)"
+        view?.showNetworkError(message: message)
     }
     
     // MARK: - Private Game Logic
@@ -53,7 +68,7 @@ final class GamePresenter {
     private func showNextQuestionOrResults() {
         if currentQuestionIndex == questionsAmount - 1 {
             showResults()
-           
+            
         } else {
             currentQuestionIndex += 1
             requestNextQuestion()
@@ -64,9 +79,9 @@ final class GamePresenter {
         if isCorrect {
             correctAnswers += 1
         }
-
+        
         view?.highlightImage(isCorrect: isCorrect)
-
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.showNextQuestionOrResults()
         }
@@ -93,11 +108,11 @@ final class GamePresenter {
         
         view?.show(quiz: viewModel)
     }
-
+    
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(
-            image: UIImage(named: model.image) ?? UIImage(),
+            image: UIImage(data: model.image) ?? UIImage(),
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
         )
@@ -110,15 +125,28 @@ extension GamePresenter: QuestionFactoryDelegate {
         guard let question = question else { return }
         
         self.currentQuestion = question
-
+        
         let viewModel = convert(model: question)
-
+        
         DispatchQueue.main.async { [weak self] in
             self?.view?.show(quiz: viewModel)
         }
     }
+    func didLoadDataFromServer() {
+        DispatchQueue.main.async { [weak self] in
+            self?.view?.hideLoadingIndicator()
+            self?.requestNextQuestion()
+        }
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        DispatchQueue.main.async { [weak self] in
+            self?.view?.hideLoadingIndicator()
+            let message = error.localizedDescription
+            self?.view?.showNetworkError(message: message)
+        }
+    }
 }
-
 
 
 
