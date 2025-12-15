@@ -130,7 +130,7 @@ final class MovieQuizPresenter {
     }
     
     private func checkAnswer(_ isYes: Bool) -> Bool {
-        guard let currentQuestion = currentQuestion else { return false }
+        guard let currentQuestion else { return false }
         return isYes == currentQuestion.correctAnswer
     }
     
