@@ -10,10 +10,10 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var counterLabel: UILabel!
     @IBOutlet private weak var yesButton: UIButton!
     @IBOutlet private weak var noButton: UIButton!
-    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Dependencies
-    private var presenter: GamePresenter!
+    private var presenter: MovieQuizPresenter!
     
     
     // MARK: - Lifecycle
@@ -24,11 +24,8 @@ final class MovieQuizViewController: UIViewController {
         activityIndicator.hidesWhenStopped = true
         showLoadingIndicator()
         
-        let moviesLoader = MoviesLoader()
-        let factory = QuestionFactory(moviesLoader: moviesLoader, delegate: nil)
-        presenter = GamePresenter(view: self, questionFactory: factory)
+        presenter = MovieQuizPresenter(view: self)
         
-        factory.delegate = presenter
         
     }
     
@@ -40,11 +37,11 @@ final class MovieQuizViewController: UIViewController {
     
     // MARK: - Actions
     @IBAction private func yesButtonClicked(_ sender: Any) {
-        presenter.handleAnswer(true)
+        presenter.didAnswer(isYes: true)
     }
     
     @IBAction private func noButtonClicked(_ sender: Any) {
-        presenter.handleAnswer(false)
+        presenter.didAnswer(isYes: false)
     }
 }
 
